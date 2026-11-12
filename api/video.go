@@ -8,9 +8,9 @@ import (
 
 // CreateVideo 视频投稿
 func CreateVideo(c *gin.Context) {
-	service := service.CreateVideoService{}
-	if err := c.ShouldBind(&service); err == nil {
-		res := service.Create()
+	videoService := service.CreateVideoService{}
+	if err := c.ShouldBind(&videoService); err == nil {
+		res := videoService.Create(CurrentUser(c).ID)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
@@ -19,17 +19,15 @@ func CreateVideo(c *gin.Context) {
 
 // ShowVideo 视频详情接口
 func ShowVideo(c *gin.Context) {
-	service := service.ShowVideoService{}
-	res := service.Show(c.Param("id"))
-	c.JSON(200, res)
+	videoService := service.ShowVideoService{}
+	c.JSON(200, videoService.Show(c.Param("id")))
 }
 
 // ListVideo 视频列表接口
 func ListVideo(c *gin.Context) {
-	service := service.ListVideoService{}
-	if err := c.ShouldBind(&service); err == nil {
-		res := service.List()
-		c.JSON(200, res)
+	videoService := service.ListVideoService{}
+	if err := c.ShouldBind(&videoService); err == nil {
+		c.JSON(200, videoService.List())
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
@@ -37,18 +35,16 @@ func ListVideo(c *gin.Context) {
 
 // UpdateVideo 更新视频的接口
 func UpdateVideo(c *gin.Context) {
-	service := service.UpdateVideoService{}
-	if err := c.ShouldBind(&service); err == nil {
-		res := service.Update(c.Param("id"))
-		c.JSON(200, res)
+	videoService := service.UpdateVideoService{}
+	if err := c.ShouldBind(&videoService); err == nil {
+		c.JSON(200, videoService.Update(c.Param("id"), CurrentUser(c).ID))
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
 
-// DeleteVideo 删除视频的接口
+// DeleteVideo 删除视频
 func DeleteVideo(c *gin.Context) {
-	service := service.DeleteVideoService{}
-	res := service.Delete(c.Param("id"))
-	c.JSON(200, res)
+	videoService := service.DeleteVideoService{}
+	c.JSON(200, videoService.Delete(c.Param("id"), CurrentUser(c).ID))
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"giligili/api"
 	"giligili/middleware"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,11 @@ func NewRouter() *gin.Engine {
 	r.Use(middleware.Session(os.Getenv("SESSION_SECRET")))
 	r.Use(middleware.Cors())
 	r.Use(middleware.CurrentUser())
+
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "ok")
+	})
+	r.StaticFile("/", "./web/index.html")
 
 	v1 := r.Group("/api/v1")
 	{

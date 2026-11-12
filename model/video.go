@@ -2,6 +2,7 @@ package model
 
 import (
 	"giligili/cache"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -19,20 +20,48 @@ type Video struct {
 	Avatar string
 }
 
+// mediaURL returns direct HTTP(S) links unchanged and signs OSS object keys
+// only when OSS is configured.
+func mediaURL(value string) string {
+	if value == "" {
+		return ""
+	}
+	parsed, err := url.Parse(value)
+	if err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != "" {
+		return value
+	}
+
+	endpoint := os.Getenv("OSS_END_POINT")
+	accessKeyID := os.Getenv("OSS_ACCESS_KEY_ID")
+	accessKeySecret := os.Getenv("OSS_ACCESS_KEY_SECRET")
+	bucketName := os.Getenv("OSS_BUCKET")
+	if endpoint == "" || accessKeyID == "" || accessKeySecret == "" || bucketName == "" {
+		return ""
+	}
+
+	client, err := oss.New(endpoint, accessKeyID, accessKeySecret)
+	if err != nil {
+		return ""
+	}
+	bucket, err := client.Bucket(bucketName)
+	if err != nil {
+		return ""
+	}
+	signedURL, err := bucket.SignURL(value, oss.HTTPGet, 600)
+	if err != nil {
+		return ""
+	}
+	return signedURL
+}
+
 // AvatarURL 封面地址
 func (video *Video) AvatarURL() string {
-	client, _ := oss.New(os.Getenv("OSS_END_POINT"), os.Getenv("OSS_ACCESS_KEY_ID"), os.Getenv("OSS_ACCESS_KEY_SECRET"))
-	bucket, _ := client.Bucket(os.Getenv("OSS_BUCKET"))
-	signedGetURL, _ := bucket.SignURL(video.Avatar, oss.HTTPGet, 600)
-	return signedGetURL
+	return mediaURL(video.Avatar)
 }
 
 // VideoURL 视频地址
 func (video *Video) VideoURL() string {
-	client, _ := oss.New(os.Getenv("OSS_END_POINT"), os.Getenv("OSS_ACCESS_KEY_ID"), os.Getenv("OSS_ACCESS_KEY_SECRET"))
-	bucket, _ := client.Bucket(os.Getenv("OSS_BUCKET"))
-	signedGetURL, _ := bucket.SignURL(video.URL, oss.HTTPGet, 600)
-	return signedGetURL
+	return mediaURL(video.URL)
 }
 
 // View 点击数

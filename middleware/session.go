@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"os"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -11,7 +13,7 @@ func Session(secret string) gin.HandlerFunc {
 	store := cookie.NewStore([]byte(secret))
 	store.Options(sessions.Options{
 		HttpOnly: true,
-		Secure:   gin.Mode() == gin.ReleaseMode,
+		Secure:   os.Getenv("GIN_MODE") == gin.ReleaseMode,
 		MaxAge:   7 * 86400,
 		Path:     "/",
 	})

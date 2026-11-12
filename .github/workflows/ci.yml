@@ -26,3 +26,19 @@ jobs:
         run: go test ./...
       - name: Build server
         run: go build ./...
+      - name: Boot stack and verify website
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.yml.example up --build -d
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:3000/healthz >/dev/null; then
+              curl --fail --silent http://localhost:3000/ | grep -q 'G站视频'
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.yml.example logs
+          exit 1
+      - name: Stop stack
+        if: always()
+        run: docker compose -f docker-compose.yml.example down -v

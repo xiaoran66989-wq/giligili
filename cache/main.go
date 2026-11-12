@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v6"
 )
 
 // RedisClient Redis缓存客户端单例
@@ -20,7 +20,6 @@ func Redis() {
 	})
 
 	_, err := client.Ping().Result()
-
 	if err != nil {
 		panic(err)
 	}

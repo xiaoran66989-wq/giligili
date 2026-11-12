@@ -14,24 +14,18 @@ type CreateVideoService struct {
 }
 
 // Create 创建视频
-func (service *CreateVideoService) Create() serializer.Response {
+func (service *CreateVideoService) Create(userID uint) serializer.Response {
 	video := model.Video{
+		UserID: userID,
 		Title:  service.Title,
 		Info:   service.Info,
 		URL:    service.URL,
 		Avatar: service.Avatar,
 	}
 
-	err := model.DB.Create(&video).Error
-	if err != nil {
-		return serializer.Response{
-			Status: 50001,
-			Msg:    "视频保存失败",
-			Error:  err.Error(),
-		}
+	if err := model.DB.Create(&video).Error; err != nil {
+		return serializer.Response{Status: 50001, Msg: "视频保存失败"}
 	}
 
-	return serializer.Response{
-		Data: serializer.BuildVideo(video),
-	}
+	return serializer.Response{Data: serializer.BuildVideo(video)}
 }

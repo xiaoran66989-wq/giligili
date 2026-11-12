@@ -6,29 +6,16 @@ import (
 )
 
 // DeleteVideoService 删除投稿的服务
-type DeleteVideoService struct {
-}
+type DeleteVideoService struct{}
 
 // Delete 删除视频
-func (service *DeleteVideoService) Delete(id string) serializer.Response {
+func (service *DeleteVideoService) Delete(id string, userID uint) serializer.Response {
 	var video model.Video
-	err := model.DB.First(&video, id).Error
-	if err != nil {
-		return serializer.Response{
-			Status: 404,
-			Msg:    "视频不存在",
-			Error:  err.Error(),
-		}
+	if err := model.DB.Where("id = ? AND user_id = ?", id, userID).First(&video).Error; err != nil {
+		return serializer.Response{Status: 404, Msg: "视频不存在或无权删除"}
 	}
-
-	err = model.DB.Delete(&video).Error
-	if err != nil {
-		return serializer.Response{
-			Status: 50000,
-			Msg:    "视频删除失败",
-			Error:  err.Error(),
-		}
+	if err := model.DB.Delete(&video).Error; err != nil {
+		return serializer.Response{Status: 50000, Msg: "视频删除失败"}
 	}
-
 	return serializer.Response{}
 }

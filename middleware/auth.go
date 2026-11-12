@@ -3,6 +3,7 @@ package middleware
 import (
 	"giligili/model"
 	"giligili/serializer"
+	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -32,11 +33,9 @@ func AuthRequired() gin.HandlerFunc {
 				return
 			}
 		}
-
-		c.JSON(200, serializer.Response{
-			Status: 401,
+		c.AbortWithStatusJSON(http.StatusUnauthorized, serializer.Response{
+			Status: http.StatusUnauthorized,
 			Msg:    "需要登录",
 		})
-		c.Abort()
 	}
 }

@@ -21,7 +21,7 @@ jobs:
           go-version: stable
           cache: true
       - name: Resolve dependencies
-        run: go mod download
+        run: go mod tidy
       - name: Run package tests
         run: go test ./...
       - name: Build server

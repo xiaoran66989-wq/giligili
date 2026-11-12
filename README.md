@@ -24,7 +24,7 @@
 4. 在项目目录运行：
 
 ~~~sh
-go mod download
+go mod tidy
 go run .
 ~~~
 

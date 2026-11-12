@@ -1,33 +1,20 @@
-FROM golang as build
+FROM golang:alpine AS build
 
-ENV GOPROXY=https://goproxy.io
+WORKDIR /src
+COPY go.mod ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/giligili .
 
-ADD . /giligili
+FROM alpine:latest
 
-WORKDIR /giligili
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api_server
-
-FROM alpine:3.7
-
-ENV REDIS_ADDR=""
-ENV REDIS_PW=""
-ENV REDIS_DB=""
-ENV MysqlDSN=""
-ENV GIN_MODE="release"
-ENV PORT=3000
-
-RUN echo "http://mirrors.aliyun.com/alpine/v3.7/main/" > /etc/apk/repositories && \
-    apk update && \
-    apk add ca-certificates && \
-    echo "hosts: files dns" > /etc/nsswitch.conf && \
-    mkdir -p /www/conf
-
-WORKDIR /www
-
-COPY --from=build /giligili/api_server /usr/bin/api_server
-ADD ./conf /www/conf
-
-RUN chmod +x /usr/bin/api_server
-
-ENTRYPOINT ["api_server"]
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S app \
+    && adduser -S -G app app
+WORKDIR /app
+COPY --from=build --chown=app:app /out/giligili /usr/local/bin/giligili
+COPY --chown=app:app conf /app/conf
+COPY --chown=app:app swagger /app/swagger
+USER app
+EXPOSE 3000
+ENTRYPOINT ["/usr/local/bin/giligili"]

@@ -1,10 +1,9 @@
 FROM golang:alpine AS build
 
 WORKDIR /src
-COPY go.mod ./
-RUN go mod tidy
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/giligili .
+RUN go mod tidy \
+    && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/giligili .
 
 FROM alpine:latest
 

@@ -20,10 +20,7 @@ func Database(connString string) {
 	}
 
 	db.LogMode(gin.Mode() != gin.ReleaseMode)
-	sqlDB, err := db.DB()
-	if err != nil {
-		panic(err)
-	}
+	sqlDB := db.DB()
 	sqlDB.SetMaxIdleConns(20)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(30 * time.Second)

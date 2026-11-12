@@ -1,34 +1,50 @@
-version: '2'
-
 services:
-  gili-api:
-    build: ./
-    image: gili-api:latest
-    container_name: gili-api
-    restart: always
+  api:
+    build: .
+    image: giligili:local
+    restart: unless-stopped
     environment:
-      MYSQL_DSN: "root:QBwNk5GN5xfB@tcp(mysql:3306)/giligili?charset=utf8mb4,utf8&parseTime=True&loc=Local"
-      REDIS_ADDR: "redis:6379"
-      REDIS_DB: "0"
-      SESSION_SECRET: "rBaXcd1PPrC1"
-      GIN_MODE: "release"
+      MYSQL_DSN: ${MYSQL_DSN:?Set MYSQL_DSN in .env}
+      REDIS_ADDR: redis:6379
+      REDIS_PW: ${REDIS_PW:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      GIN_MODE: ${GIN_MODE:-release}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      OSS_END_POINT: ${OSS_END_POINT:-}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_BUCKET: ${OSS_BUCKET:-}
     ports:
-      - 3002:3000
+      - "3000:3000"
     depends_on:
-      - redis
-      - mysql
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   mysql:
-    container_name: mysql
-    image: mysql:5.6
-    restart: always
+    image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: QBwNk5GN5xfB
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: giligili
-    ports:
-      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   redis:
-    container_name: redis
-    image: redis
-    restart: always
-    ports:
-      - "6379:6379"
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:

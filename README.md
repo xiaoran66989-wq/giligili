@@ -1,100 +1,69 @@
-# G站: https://www.gourouting.com
+# G站学习项目
 
-欢迎来到[G站](www.gourouting.com)，本站是[Singo](https://github.com/bydmm/singo)框架的学习项目。
+这是 [gourouting/giligili](https://github.com/gourouting/giligili) 的个人 Fork。项目使用 Gin 和 GORM 编写视频站后端 API，主要用于学习 Go 后端开发；它不包含可直接访问的前端页面，也不是开箱即用的商业视频平台。
 
-## 项目地址
+> 源项目未声明开源许可证。Fork 仅用于在 GitHub 上保存和实验；如需对外发布、商用或再分发，请先向原作者确认授权。
 
-https://github.com/bydmm/giligili
+## 当前功能
 
-## 项目目的
+- 用户注册、登录和会话
+- 视频列表、详情、投稿、编辑与删除
+- Redis 播放量和每日排行
+- 阿里云 OSS 直传签名
+- Swagger API 文档
 
-本项目代码并不是为了真正经营一个视频站项目而编写。
+视频浏览接口为公开接口。投稿、编辑、删除和上传签名接口需要登录；视频只能由创建者编辑或删除。数据库会在启动时自动迁移。
 
-本项目的主要目的是为了方便大家学习怎么用Golang编写前后端分离的纯后端项目
+## 本地运行
 
-## 重要: 如何运行
+需要 Go、MySQL、Redis。OSS 配置只在使用上传接口时需要。
 
-#### 1.学习Go Module管理依赖
+1. 创建数据库 `giligili`，启动 MySQL 和 Redis。
+2. 复制 `.env.example` 为 `.env`，填写本机连接地址和强随机 `SESSION_SECRET`。
+3. 在项目目录运行：
 
-本项目已经迁移到使用Go Module来管理依赖,和视频的开始有所不同! 所以按照视频的方法是跑不起来的。
+~~~sh
+go mod download
+go run .
+~~~
 
-请参考本视频了解什么是Go Module：https://www.bilibili.com/video/av63052644/
+服务监听 `http://localhost:3000`。健康检查接口是 `POST /api/v1/ping`，Swagger 文档位于 `http://localhost:3000/swagger/index.html`。
 
-Go Module会让你未来面对各种依赖问题迎刃而解，所以学习和使用对你是非常有价值的
+## Docker Compose 演示
 
-#### 2.配置数据库
+1. 将 `.env.example` 复制为 `.env`。
+2. 为 `MYSQL_ROOT_PASSWORD`、`MYSQL_DSN` 和 `SESSION_SECRET` 设置强随机值。DSN 中的用户名和密码必须与 MySQL 容器一致。
+3. 如前端不是 `http://localhost:8080`，设置 `CORS_ALLOWED_ORIGINS` 为前端完整来源地址；多个来源用逗号分隔。
+4. 启动：
 
-本项目依赖于任何网站项目都会使用的Mysql和Redis，所以你需要提前安装和启动这两个服务。
+~~~sh
+docker compose -f docker-compose.yml.example up --build
+~~~
 
-如果你是windows用户，可以快速的解决mysql和redis安装的问题,通过: PHPStudy。
+API 会映射到 `http://localhost:3000`。数据保存在 Docker 卷 `mysql_data` 中。停止服务使用 Ctrl+C；后台运行时用 `docker compose -f docker-compose.yml.example down`。
 
-本视频用几分钟教会你如何使用PHPStudy，https://www.bilibili.com/video/av64485001/
+## API 概览
 
-如果你是OSX或者linux的硬核用户，相必启动Mysql和Redis对你不是问题😁
+| 方法 | 路径 | 登录 | 用途 |
+|---|---|---:|---|
+| POST | `/api/v1/user/register` | 否 | 注册 |
+| POST | `/api/v1/user/login` | 否 | 登录 |
+| GET | `/api/v1/videos` | 否 | 视频列表 |
+| GET | `/api/v1/video/:id` | 否 | 视频详情 |
+| POST | `/api/v1/videos` | 是 | 投稿 |
+| PUT | `/api/v1/video/:id` | 是 | 编辑自己的视频 |
+| DELETE | `/api/v1/video/:id` | 是 | 删除自己的视频 |
+| POST | `/api/v1/upload/token` | 是 | 获取 OSS 上传签名 |
 
-#### 3.配置环境变量
+所有 API 仍沿用项目原有 JSON 响应格式。部署前请检查 Swagger 文档和环境配置。
 
-> 设置环境变量，你可以参考singo框架的文档: https://singo.gourouting.com/quick-guide/set-env.html
+## 部署说明
 
-由于每个用户的电脑环境不同，所以我们通过环境变量来改变着些容易变化的属性。
+这是学习项目，尚未做完整的生产环境审计。它没有前端播放器；运行需要后端服务器、MySQL、Redis 和（上传时）OSS。GitHub Pages 只能发布静态文件，不能运行这个 Go 后端。
 
-你需要复制项目根目录下的.env.example文件，然后建立.env文件，然后把内容帖进去
+`GIN_MODE=release` 时会为会话 Cookie 启用 Secure 属性，因此服务应通过 HTTPS 提供。请勿把真实密码、OSS 密钥或生产环境的 `.env` 文件提交到公开仓库。Compose 文件用于开发演示；上线前应评估依赖版本、数据库备份、HTTPS 代理、限流、日志和监控。
 
-```ini
-MYSQL_DSN="user:password@tcp(ip:port)/dbname?charset=utf8&parseTime=True&loc=Local" # mysql连接串
-REDIS_ADDR="127.0.0.1:6379" # redis地址
-REDIS_PW="" # redis密码(可以不填)
-REDIS_DB="" # redis数据库(可以不填)
-SESSION_SECRET="youneedtoset" # session密钥，开发环境可以不用改
-GIN_MODE="debug" # 服务状态，开发环境不用改
-# 下面是OSS对象存储的参数
-# 参考本视频来管理上传文件：https://www.bilibili.com/video/av60189734/
-OSS_END_POINT="oss-cn-hongkong.aliyuncs.com" # OSS端点
-OSS_ACCESS_KEY_ID="xxx"
-OSS_ACCESS_KEY_SECRET="qqqq"
-OSS_BUCKET="lalalal"
+## 上游资料
 
-```
-
-#### Windows CMD 系统启动指令
-
-```bash
-set GOPROXY=https://mirrors.aliyun.com/goproxy/
-set GO111MODULE=on
-
-go run main.go
-```
-
-#### Windows Powershell 系统启动指令
-
-```bash
-$env:GOPROXY = 'https://mirrors.aliyun.com/goproxy/'
-$env:GO111MODULE = 'on'
-
-go run main.go
-```
-
-#### linux / OSX 系统启动
-
-```bash
-export GOPROXY=https://mirrors.aliyun.com/goproxy/
-export GO111MODULE=on
-
-go run main.go
-```
-
-## 视频实况系列教程
-
-[让我们写个G站吧！Golang全栈编程实况](https://space.bilibili.com/10/channel/detail?cid=78794)
-
-## Singo框架
-
-使用Singo开发Web服务，用最简单的架构，实现够用的框架，服务海量用户
-
-https://github.com/bydmm/singo
-
-## 神奇的接口文档
-
-服务启动后: http://localhost:3000/swagger/index.html
-
-接口文档位于项目swagger目录下。请阅读目录内的文档
+- 原项目：[gourouting/giligili](https://github.com/gourouting/giligili)
+- 项目介绍与教程链接见原项目 README。

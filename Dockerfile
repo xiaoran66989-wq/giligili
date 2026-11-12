@@ -15,6 +15,8 @@ WORKDIR /app
 COPY --from=build --chown=app:app /out/giligili /usr/local/bin/giligili
 COPY --chown=app:app conf /app/conf
 COPY --chown=app:app swagger /app/swagger
+COPY --chown=app:app web /app/web
 USER app
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:3000/healthz || exit 1
 ENTRYPOINT ["/usr/local/bin/giligili"]

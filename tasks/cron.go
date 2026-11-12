@@ -30,7 +30,7 @@ func CronJob() {
 	if Cron == nil {
 		Cron = cron.New()
 	}
-	if _, err := Cron.AddFunc("0 0 * * *", func() { Run(RestartDailyRank) }); err != nil {
+	if err := Cron.AddFunc("0 0 * * *", func() { Run(RestartDailyRank) }); err != nil {
 		panic(err)
 	}
 	Cron.Start()

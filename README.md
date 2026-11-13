@@ -24,7 +24,7 @@
 
 Windows 安装包使用本地 SQLite，无需安装 Go、MySQL、Redis 或 Docker Desktop。若从源码启动非 Windows 版本，需要 Go、MySQL。OSS 配置只在使用 OSS 上传接口时需要。
 
-1. 创建数据库 `giligili`，启动 MySQL 和 Redis。
+1. 创建数据库 `giligili` 并启动 MySQL。
 2. 复制 `.env.example` 为 `.env`，填写本机 MySQL 连接地址和强随机 `SESSION_SECRET`。
 3. 本地 HTTP 开发保持 `GIN_MODE=debug`。
 4. 在项目目录运行：
@@ -66,7 +66,7 @@ docker compose -f docker-compose.yml.example up --build
 
 ## 部署说明
 
-这是学习项目，尚未做完整的生产环境审计。运行需要 Go 后端、MySQL 和 Redis；已有外链 MP4/封面可直接投稿展示，若使用阿里云 OSS 上传则需另行配置 OSS。GitHub Pages 只能发布静态文件，不能运行这个 Go 后端。
+这是学习项目，尚未做完整的生产环境审计。Windows 安装包使用本地 SQLite；源码和 Docker Compose 运行方式使用 MySQL。已有外链 MP4/封面可直接投稿展示，若使用阿里云 OSS 上传则需另行配置 OSS。GitHub Pages 只能发布静态文件，不能运行这个 Go 后端。
 
 `GIN_MODE=release` 时会为会话 Cookie 启用 Secure 属性，因此服务应通过 HTTPS 提供。请勿把真实密码、OSS 密钥或生产环境的 `.env` 文件提交到公开仓库。Compose 文件用于开发演示；上线前应评估依赖版本、数据库备份、HTTPS 代理、限流、日志和监控。
 

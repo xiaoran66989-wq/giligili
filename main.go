@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	preparePackagedWorkingDirectory()
 	conf.Init()
 	r := server.NewRouter()
 
@@ -30,5 +31,19 @@ func main() {
 
 	if err := r.Run(addr); err != nil {
 		panic(err)
+	}
+}
+
+func preparePackagedWorkingDirectory() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return
+	}
+	appDir := filepath.Dir(executable)
+	if _, err := os.Stat(filepath.Join(appDir, "web", "index.html")); err == nil {
+		_ = os.Chdir(appDir)
 	}
 }

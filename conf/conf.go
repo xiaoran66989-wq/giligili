@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"giligili/cache"
 	"giligili/model"
 	"giligili/tasks"
 	"os"
@@ -22,7 +21,6 @@ func Init() {
 		panic(err)
 	}
 
-	model.Database(os.Getenv("MYSQL_DSN"))
-	cache.Redis()
+	model.Database()
 	tasks.CronJob()
 }

@@ -20,6 +20,17 @@
 
 安装包在 Windows 上使用 SQLite 保存账号、视频和播放数；每日排行在程序运行期间统计。关闭启动时出现的黑色服务窗口会停止网站服务。
 
+## Windows 代码签名
+
+安装包工作流已支持 Authenticode 签名。要启用签名，请先取得可信 CA 签发、可导出为 PFX 的 Windows 代码签名证书，然后在仓库的 **Settings → Secrets and variables → Actions** 添加两个 Repository secrets：
+
+- `WINDOWS_SIGNING_CERT_BASE64`：PFX 文件的单行 Base64 内容
+- `WINDOWS_SIGNING_CERT_PASSWORD`：PFX 密码
+
+不要把 PFX 文件或密码提交到仓库。配置完成后重新运行 **Windows Installer** 工作流；它会用 SHA-256 与 RFC 3161 时间戳签署程序和安装包，并将产物标记为 `signed`。未设置证书时仍会生成并标记为 `unsigned`。
+
+签名可以显示已验证的发布者身份，但新证书或新文件仍可能触发 SmartScreen 声誉提示。微软说明见[SmartScreen 声誉说明](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)和[Authenticode 时间戳说明](https://learn.microsoft.com/windows/win32/seccrypto/time-stamping-authenticode-signatures)。
+
 ## 本地运行
 
 Windows 安装包使用本地 SQLite，无需安装 Go、MySQL、Redis 或 Docker Desktop。若从源码启动非 Windows 版本，需要 Go、MySQL。OSS 配置只在使用 OSS 上传接口时需要。

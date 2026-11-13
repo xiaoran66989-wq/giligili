@@ -3,7 +3,6 @@ package main
 import (
 	"giligili/conf"
 	"giligili/server"
-	"net"
 	"os"
 	"os/exec"
 	"runtime"
@@ -29,11 +28,7 @@ func main() {
 		}()
 	}
 
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		panic(err)
-	}
-	if err := r.RunListener(listener); err != nil {
+	if err := r.Run(addr); err != nil {
 		panic(err)
 	}
 }

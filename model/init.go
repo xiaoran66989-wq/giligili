@@ -36,7 +36,7 @@ func Database() {
 				panic(err)
 			}
 			dataDir := filepath.Join(configDir, "Giligili")
-			if err := os.MkdirAll(dataDir, 0o755); err != nil {
+			if err := os.MkdirAll(dataDir, 0755); err != nil {
 				panic(err)
 			}
 			connString = filepath.Join(dataDir, "giligili.db")

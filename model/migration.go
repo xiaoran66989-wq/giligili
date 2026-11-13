@@ -6,5 +6,7 @@ func migration(driver string) {
 	if driver == "mysql" {
 		db = db.Set("gorm:table_options", "charset=utf8mb4")
 	}
-	db.AutoMigrate(&User{}).AutoMigrate(&Video{})
+	if err := db.AutoMigrate(&User{}).AutoMigrate(&Video{}).Error; err != nil {
+		panic(err)
+	}
 }

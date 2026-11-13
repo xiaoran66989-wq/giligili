@@ -35,6 +35,49 @@ jobs:
           New-Item -ItemType Directory -Force build | Out-Null
           $env:CGO_ENABLED = "1"
           go build -trimpath -ldflags="-s -w" -o build/giligili.exe .
+      - name: Check signing configuration
+        id: signing
+        shell: pwsh
+        env:
+          SIGNING_CERT_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          $hasCertificate = -not [string]::IsNullOrWhiteSpace($env:SIGNING_CERT_BASE64)
+          $hasPassword = -not [string]::IsNullOrWhiteSpace($env:SIGNING_CERT_PASSWORD)
+          if ($hasCertificate -ne $hasPassword) {
+            throw "Set both WINDOWS_SIGNING_CERT_BASE64 and WINDOWS_SIGNING_CERT_PASSWORD."
+          }
+          if ($hasCertificate) {
+            "ready=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "### Authenticode signing enabled" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          } else {
+            "ready=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "### Installer is unsigned" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            "Add a trusted PFX certificate using the two WINDOWS_SIGNING_CERT_* repository secrets to publish a signed installer." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }
+      - name: Prepare signing certificate
+        if: steps.signing.outputs.ready == 'true'
+        shell: pwsh
+        env:
+          SIGNING_CERT_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "giligili-signing.pfx"
+          [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:SIGNING_CERT_BASE64))
+          "SIGNING_CERT_PATH=$certificatePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Sign Windows application
+        if: steps.signing.outputs.ready == 'true'
+        shell: pwsh
+        env:
+          SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          $sdkRoot = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Windows Kits\10\bin"
+          $signTool = Get-ChildItem -Path $sdkRoot -Filter signtool.exe -Recurse -ErrorAction Stop |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName |
+            Select-Object -Last 1 -ExpandProperty FullName
+          if (-not $signTool) { throw "Windows SDK SignTool was not found." }
+          & $signTool sign /f "$env:SIGNING_CERT_PATH" /p "$env:SIGNING_CERT_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 build/giligili.exe
+          if ($LASTEXITCODE -ne 0) { throw "Signing the application failed." }
       - name: Smoke test standalone SQLite app
         shell: pwsh
         run: |
@@ -66,10 +109,33 @@ jobs:
           $compiler = Join-Path $programFilesX86 "Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $compiler)) { throw "Inno Setup compiler not found." }
           & $compiler installer/giligili.iss
+      - name: Sign installer
+        if: steps.signing.outputs.ready == 'true'
+        shell: pwsh
+        env:
+          SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          $sdkRoot = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Windows Kits\10\bin"
+          $signTool = Get-ChildItem -Path $sdkRoot -Filter signtool.exe -Recurse -ErrorAction Stop |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName |
+            Select-Object -Last 1 -ExpandProperty FullName
+          if (-not $signTool) { throw "Windows SDK SignTool was not found." }
+          $installer = "installer/output/Giligili-Windows-Installer.exe"
+          & $signTool sign /f "$env:SIGNING_CERT_PATH" /p "$env:SIGNING_CERT_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $installer
+          if ($LASTEXITCODE -ne 0) { throw "Signing the installer failed." }
+          & $signTool verify /pa /all $installer
+          if ($LASTEXITCODE -ne 0) { throw "Installer signature verification failed." }
+      - name: Remove signing certificate
+        if: always()
+        shell: pwsh
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "giligili-signing.pfx"
+          if (Test-Path $certificatePath) { Remove-Item $certificatePath -Force }
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: Giligili-Windows-Installer
+          name: Giligili-Windows-Installer-${{ steps.signing.outputs.ready == 'true' && 'signed' || 'unsigned' }}
           path: installer/output/Giligili-Windows-Installer.exe
           if-no-files-found: error
           retention-days: 30

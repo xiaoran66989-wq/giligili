@@ -4,7 +4,6 @@ import (
 	"giligili/cache"
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/jinzhu/gorm"
@@ -18,6 +17,7 @@ type Video struct {
 	Info   string
 	URL    string
 	Avatar string
+	Views  uint64
 }
 
 // mediaURL returns direct HTTP(S) links unchanged and signs OSS object keys
@@ -64,15 +64,16 @@ func (video *Video) VideoURL() string {
 	return mediaURL(video.URL)
 }
 
-// View 点击数
+// View returns the persisted total view count.
 func (video *Video) View() uint64 {
-	countStr, _ := cache.RedisClient.Get(cache.VideoViewKey(video.ID)).Result()
-	count, _ := strconv.ParseUint(countStr, 10, 64)
-	return count
+	return video.Views
 }
 
-// AddView 视频游览
+// AddView increments the persisted total and updates the in-process daily rank.
 func (video *Video) AddView() {
-	cache.RedisClient.Incr(cache.VideoViewKey(video.ID))
-	cache.RedisClient.ZIncrBy(cache.DailyRankKey, 1, strconv.Itoa(int(video.ID)))
+	if err := DB.Model(video).UpdateColumn("views", gorm.Expr("views + ?", 1)).Error; err != nil {
+		return
+	}
+	video.Views++
+	cache.RecordDailyView(video.ID)
 }

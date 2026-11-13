@@ -41,4 +41,7 @@ jobs:
           exit 1
       - name: Stop stack
         if: always()
-        run: docker compose -f docker-compose.yml.example down -v
+        run: |
+          if [ -f .env ]; then
+            docker compose -f docker-compose.yml.example down -v
+          fi

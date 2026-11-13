@@ -1,20 +1,49 @@
 package model
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // DB 数据库链接单例
 var DB *gorm.DB
 
 // Database 在中间件中初始化mysql链接
-func Database(connString string) {
-	db, err := gorm.Open("mysql", connString)
+func Database() {
+	driver := os.Getenv("DB_DRIVER")
+	if driver == "" {
+		if runtime.GOOS == "windows" {
+			driver = "sqlite3"
+		} else {
+			driver = "mysql"
+		}
+	}
+
+	connString := os.Getenv("MYSQL_DSN")
+	if driver == "sqlite3" {
+		connString = os.Getenv("SQLITE_PATH")
+		if connString == "" {
+			configDir, err := os.UserConfigDir()
+			if err != nil {
+				panic(err)
+			}
+			dataDir := filepath.Join(configDir, "Giligili")
+			if err := os.MkdirAll(dataDir, 0o755); err != nil {
+				panic(err)
+			}
+			connString = filepath.Join(dataDir, "giligili.db")
+		}
+	}
+
+	db, err := gorm.Open(driver, connString)
 	if err != nil {
 		panic(err)
 	}
@@ -26,5 +55,5 @@ func Database(connString string) {
 	sqlDB.SetConnMaxLifetime(30 * time.Second)
 
 	DB = db
-	migration()
+	migration(driver)
 }

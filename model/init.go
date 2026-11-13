@@ -41,6 +41,7 @@ func Database() {
 			}
 			connString = filepath.Join(dataDir, "giligili.db")
 		}
+		connString = "file:" + filepath.ToSlash(connString) + "?_busy_timeout=5000&_journal_mode=WAL"
 	}
 
 	db, err := gorm.Open(driver, connString)
@@ -51,7 +52,11 @@ func Database() {
 	db.LogMode(gin.Mode() != gin.ReleaseMode)
 	sqlDB := db.DB()
 	sqlDB.SetMaxIdleConns(20)
-	sqlDB.SetMaxOpenConns(100)
+	if driver == "sqlite3" {
+		sqlDB.SetMaxOpenConns(1)
+	} else {
+		sqlDB.SetMaxOpenConns(100)
+	}
 	sqlDB.SetConnMaxLifetime(30 * time.Second)
 
 	DB = db

@@ -5,9 +5,6 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DSN: ${MYSQL_DSN:?Set MYSQL_DSN in .env}
-      REDIS_ADDR: redis:6379
-      REDIS_PW: ${REDIS_PW:-}
-      REDIS_DB: ${REDIS_DB:-0}
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
       GIN_MODE: ${GIN_MODE:-release}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
@@ -20,8 +17,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
 
   mysql:
     image: mysql:8.4
@@ -33,15 +28,6 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10

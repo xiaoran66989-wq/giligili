@@ -35,6 +35,10 @@ jobs:
           New-Item -ItemType Directory -Force build | Out-Null
           $env:CGO_ENABLED = "1"
           go build -trimpath -ldflags="-s -w" -o build/giligili.exe .
+      - name: Verify Store MSIX packaging
+        shell: pwsh
+        run: |
+          ./installer/msix/Build-MSIX.ps1 -IdentityName "Giligili.Test" -Publisher "CN=Giligili Test, OID.2.25.311729368913984317654407730594956997722=1" -PublisherDisplayName "Giligili Test" -Version "1.0.0.0" -OutputPath "$env:RUNNER_TEMP/Giligili-Test.msix"
       - name: Check signing configuration
         id: signing
         shell: pwsh

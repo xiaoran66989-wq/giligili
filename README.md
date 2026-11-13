@@ -8,18 +8,24 @@
 
 - 用户注册、登录和会话
 - 视频列表、详情、投稿、编辑与删除
-- Redis 播放量和每日排行
+- 数据库存储的播放量和每日排行
 - 阿里云 OSS 直传签名
 - Swagger API 文档
 
 视频浏览接口为公开接口。投稿、编辑、删除和上传签名接口需要登录；视频只能由创建者编辑或删除。数据库会在启动时自动迁移。升级已有数据库时，旧视频没有归属用户，自动迁移后不能通过新权限规则编辑或删除；迁移前请备份数据，再由管理员按需处理旧记录。
 
+## Windows 安装包
+
+在 GitHub 仓库的 Actions 中打开最新的 “Windows Installer” 工作流，下载名为 `Giligili-Windows-Installer` 的产物并运行其中的安装程序。安装完成后从开始菜单启动“G站视频”，浏览器会自动打开 `http://localhost:3000/`。应用数据保存在当前 Windows 用户的配置目录中，卸载程序不会删除数据库。
+
+安装包在 Windows 上使用 SQLite 保存账号、视频和播放数；每日排行在程序运行期间统计。关闭启动时出现的黑色服务窗口会停止网站服务。
+
 ## 本地运行
 
-需要 Go、MySQL、Redis。OSS 配置只在使用上传接口时需要。
+Windows 安装包使用本地 SQLite，无需安装 Go、MySQL、Redis 或 Docker Desktop。若从源码启动非 Windows 版本，需要 Go、MySQL。OSS 配置只在使用 OSS 上传接口时需要。
 
 1. 创建数据库 `giligili`，启动 MySQL 和 Redis。
-2. 复制 `.env.example` 为 `.env`，填写本机连接地址、强随机 `SESSION_SECRET`，并将 `MYSQL_DSN` 中的主机改为本机地址。
+2. 复制 `.env.example` 为 `.env`，填写本机 MySQL 连接地址和强随机 `SESSION_SECRET`。
 3. 本地 HTTP 开发保持 `GIN_MODE=debug`。
 4. 在项目目录运行：
 

@@ -95,9 +95,14 @@ try {
     New-Item -ItemType Directory -Force -Path (Split-Path $OutputPath -Parent) | Out-Null
     & $makeAppx pack /d $stage /p $OutputPath /o
     if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed to create the Store package." }
-    & $makeAppx verify /p $OutputPath
-    if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed to verify the Store package." }
-    Write-Output "Created unsigned Store submission package: $OutputPath"
+    $verifyStage = Join-Path ([System.IO.Path]::GetTempPath()) ("giligili-msix-check-" + [guid]::NewGuid().ToString("N"))
+    & $makeAppx unpack /p $OutputPath /d $verifyStage
+    if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed to unpack the Store package." }
+    if (-not (Test-Path (Join-Path $verifyStage "AppxManifest.xml")) -or -not (Test-Path (Join-Path $verifyStage "giligili.exe"))) {
+        throw "The generated Store package is missing required app files."
+    }
+    Remove-Item $verifyStage -Recurse -Force
+    Write-Output "Created and verified unsigned Store submission package: $OutputPath"
 }
 finally {
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }

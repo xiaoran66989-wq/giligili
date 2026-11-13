@@ -1,28 +1,57 @@
 package cache
 
 import (
-	"os"
-	"strconv"
-
-	"github.com/go-redis/redis/v7"
+	"sort"
+	"sync"
 )
 
-// RedisClient Redis缓存客户端单例
-var RedisClient *redis.Client
+var (
+	rankMu sync.RWMutex
+	dailyViews = make(map[uint]uint64)
+)
 
-// Redis 在中间件中初始化redis链接
-func Redis() {
-	db, _ := strconv.ParseUint(os.Getenv("REDIS_DB"), 10, 64)
-	client := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: os.Getenv("REDIS_PW"),
-		DB:       int(db),
-	})
+// RecordDailyView records a view for the in-process daily ranking.
+func RecordDailyView(id uint) {
+	rankMu.Lock()
+	dailyViews[id]++
+	rankMu.Unlock()
+}
 
-	_, err := client.Ping().Result()
-	if err != nil {
-		panic(err)
+// DailyRankIDs returns the top video IDs for the current process day.
+func DailyRankIDs(limit int) []uint {
+	rankMu.RLock()
+	pairs := make([]struct {
+		id uint
+		views uint64
+	}, 0, len(dailyViews))
+	for id, views := range dailyViews {
+		pairs = append(pairs, struct {
+			id uint
+			views uint64
+		}{id, views})
 	}
+	rankMu.RUnlock()
 
-	RedisClient = client
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].views == pairs[j].views {
+			return pairs[i].id < pairs[j].id
+		}
+		return pairs[i].views > pairs[j].views
+	})
+	if limit > len(pairs) {
+		limit = len(pairs)
+	}
+	ids := make([]uint, 0, limit)
+	for _, pair := range pairs[:limit] {
+		ids = append(ids, pair.id)
+	}
+	return ids
+}
+
+// ResetDailyRank resets the in-process daily ranking.
+func ResetDailyRank() error {
+	rankMu.Lock()
+	dailyViews = make(map[uint]uint64)
+	rankMu.Unlock()
+	return nil
 }

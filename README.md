@@ -20,6 +20,14 @@
 
 安装包在 Windows 上使用 SQLite 保存账号、视频和播放数；每日排行在程序运行期间统计。关闭启动时出现的黑色服务窗口会停止网站服务。
 
+## Microsoft Store 安装包
+
+Store 路线不需要自备 PFX：Microsoft Store 会在 MSIX 审核通过并发布时替换为 Microsoft 签名。仓库新增了 **Store MSIX Package** 工作流，生成待提交的 `.msix` 文件；生成包时必须使用 Partner Center 为该应用分配的准确 Package Identity Name、Publisher 和 Publisher display name。
+
+开始前，请在 [Microsoft Store 开发者门户](https://storedeveloper.microsoft.com/)创建开发者账号并在 Partner Center 保留应用名称。个人开发者的新注册流程目前免注册费，但需要本人完成身份验证。创建应用后，在 GitHub 的 **Actions → Store MSIX Package → Run workflow** 输入包身份字段并运行，下载 `Giligili-Store-MSIX-版本号` 产物。工作流只生成待提交包，不会替你提交或发布。
+
+Microsoft Store 只会为通过审核的 Store MSIX 自动签名。直接下载的 Inno Setup `.exe` 仍需 CA 代码签名证书。提交前也要确认已获原项目权利人许可；上游仓库没有声明开源许可证。
+
 ## Windows 代码签名
 
 安装包工作流已支持 Authenticode 签名。要启用签名，请先取得可信 CA 签发、可导出为 PFX 的 Windows 代码签名证书，然后在仓库的 **Settings → Secrets and variables → Actions** 添加两个 Repository secrets：
